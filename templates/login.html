@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vodafonelogin.css') }}">
+    <script src="libs/bootstrap.min.js"></script>
+    <script src="libs/jquery.js"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="hero"></div>
+        <div class="functionalArea">
+            <div class="userInfo">
+                <h3 class="title">Welcome to the <br/>Vodafone Business <br/>Qatar CMDB Platform</h3>
+                <form method="POST" action="{{ url_for('login') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+                <p class="infoText">Don't have an account? <a href="{{ url_for('register') }}" class="passwordLink">Register here</a></p>
+            </div>
+        </div>
+    </div>
+    <div class="infoCopy" id="infoCopy" style="margin: auto;">
+        <p>This system is for the use of authorised users only in accordance to Vodafone security policies and procedures. Individuals using this device without authorisation or in excess of their authority are subject to sanctionary procedures by Vodafone authorities and/or law enforcement officials. Vodafone will not be responsible for any misuse or personal use of any kind in its information systems and reserves the right for monitoring systems usage to control abusive situations or security policy violations.</p>
+        <p>Copyright © 2024 Vodafone Group | <a href="https://iotportal.vodafone.com/IOTPORTAL/privacy_policy.html" target="_blank">Privacy policy</a></p>
+    </div>
+    <script>
+        function checkUsername() {
+            var username = document.getElementById("username").value;
+            var submitButton = document.getElementById("submitButton");
+
+            var regex = /\S+@\S+\.\S+/;
+            var result = regex.test(username);
+            const alert_box = document.getElementById('usernameCheck');
+
+            if (!result) {
+                const externalHTML = `<div class="alert alert--yellow" id="error-msg">
+                    <div class="alert__media">
+                        <span class="lockIcons"></span>
+                    </div>
+                    <div class="alert__text">
+                        <p class="no-gutter--top">
+                            <strong class="validation__details js-validation-details">Ooops!</strong>
+                        </p>
+                        Please enter a valid Email
+                    </div>
+                </div>`;
+                alert_box.innerHTML = externalHTML;
+                submitButton.disabled = true;
+            } else {
+                alert_box.innerHTML = "";
+                submitButton.disabled = false;
+            }
+        }
+
+        function checkSessionKey() {
+            var proxyPath = "";
+            $.ajax({
+                type: "GET",
+                url: proxyPath + "../logincontext?sessionDataKey=d23dfb98-07e3-41ec-b534-a7e2a3e5ad6e&relyingParty=kjnoSuPOGE47raffGtWKjLFqcHYa&tenantDomain=carbon.super",
+                success: function (data) {
+                    if (data && data.status == 'redirect' && data.redirectUrl && data.redirectUrl.length > 0) {
+                        window.location.href = data.redirectUrl;
+                    }
+                },
+                cache: false
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="headerback">
+    <header>
+        <h1>CMDB Application</h1>
+    </header>
+    <div>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('add_server') }}">Add Server</a></li>
+            <li><a href="{{ url_for('bulk_upload') }}">Bulk Upload</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h2>Server Management</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Server Name</th>
+                    <th>IP Address</th>
+                    <th>OS Type</th>
+                    <th>Owner</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for server in servers %}
+                <tr>
+                    <td>{{ server.name }}</td>
+                    <td>{{ server.ip_address }}</td>
+                    <td>{{ server.operating_system }}</td>
+                    <td>{{ server.owner }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_server', server_id=server.id) }}" class="btn btn-info">Edit</a>
+                        <form action="{{ url_for('delete_server', server_id=server.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

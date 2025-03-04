@@ -1,0 +1,33 @@
+<!-- upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="headerback">
+        <header>
+            <h1>CMDB Application</h1>
+        </header>
+        <div>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('add_server') }}">Add New Server</a></li>
+            <li><a href="{{ url_for('bulk_upload') }}">Bulk Upload</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <form action="{{ url_for('bulk_upload') }}" method="POST" enctype="multipart/form-data">
+            <h2>Bulk Upload Servers</h2>
+            <label for="file">Upload CSV File:</label>
+            <input type="file" id="file" name="file" required>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+</body>
+</html>

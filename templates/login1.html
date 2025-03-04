@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <link href="/static/vodafonelogin.css" rel="stylesheet">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon"/>
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon"/>
+    <title>Vodafone</title>
+
+    <!-- jQuery and Bootstrap -->
+    <script src="libs/jquery_3.6.0/jquery-3.6.0.js"></script>
+    <script src="libs/bootstrap_3.4.1/js/bootstrap.min.js"></script>
+</head>
+<body class="logg x14j p_AFMaximized" onload="checkSessionKey()">
+<div class="wrapper">
+    <div class="hero">&nbsp;</div>
+    <div class="functionalArea">
+        <div class="userInfo">
+            <div>
+                <span class="logo"></span>
+                <h3 class="title">Welcome to the <br/>Vodafone Business <br/>Qatar CMDB Platform</h3>
+                <div class="xyy">
+                    <div class="login_content">
+                        <div class="boarder-all">
+                            <div class="clearfix"></div>
+                            <div class="padding-double login-form">
+                                
+                                <form action="{{ url_for('login') }}" method="post" id="identifierForm">
+                                    {{ form.hidden_tag() }}  <!-- CSRF protection -->
+                                    
+                                    <div id="usernameCheck"></div>
+                                    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group">
+                                        <label for="username">Username</label>
+                                        <input id="username" name="username" type="text" class="form-control" tabindex="0" placeholder="Username" required onfocusout="checkUsername()">
+                                    </div>
+                                    
+                                    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group">
+                                        <div class="form-actions">
+                                            <button type="submit" id="submitButton" class="wr-btn grey-bg primary col-xs-12 col-md-12 col-lg-12 uppercase font-extra-large margin-bottom-double btn btn-primary defaultOkayButton pull-right">Continue</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                
+                                <div class="clearfix"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="infoCopy" id="infoCopy" style="margin: auto;">
+                    <p>This system is for the use of authorised users only in accordance to Vodafone security policies and procedures. Individuals using this device without authorisation or in excess of their authority are subject to sanctionary procedures by Vodafone authorities and/or law enforcement officials. Vodafone will not be responsible for any misuse or personal use of any kind in its information systems and reserves the right for monitoring systems usage to control abusive situations or security policy violations.</p>
+                    <p>Copyright © 2024 Vodafone Group | <a href="https://iotportal.vodafone.com/IOTPORTAL/privacy_policy.html" target="_blank">Privacy policy</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkUsername() {
+            var username = document.getElementById("username").value;
+            var submitButton = document.getElementById("submitButton");
+
+            var regex = /\S+@\S+\.\S+/;
+            var result = regex.test(username);
+            const alert_box = document.getElementById('usernameCheck');
+
+            if (!result) {
+                const externalHTML = `<div class="alert alert--yellow" id="error-msg">
+                    <div class="alert__media">
+                        <span class="lockIcons"></span>
+                    </div>
+                    <div class="alert__text">
+                        <p class="no-gutter--top">
+                            <strong class="validation__details js-validation-details">Ooops!</strong>
+                        </p>
+                        Please enter a valid Email
+                    </div>
+                </div>`;
+                alert_box.innerHTML = externalHTML;
+                submitButton.disabled = true;
+            } else {
+                alert_box.innerHTML = "";
+                submitButton.disabled = false;
+            }
+        }
+
+        function checkSessionKey() {
+            var proxyPath = "";
+            $.ajax({
+                type: "GET",
+                url: proxyPath + "../logincontext?sessionDataKey=d23dfb98-07e3-41ec-b534-a7e2a3e5ad6e&relyingParty=kjnoSuPOGE47raffGtWKjLFqcHYa&tenantDomain=carbon.super",
+                success: function (data) {
+                    if (data && data.status == 'redirect' && data.redirectUrl && data.redirectUrl.length > 0) {
+                        window.location.href = data.redirectUrl;
+                    }
+                },
+                cache: false
+            });
+        }
+    </script>
+</body>
+</html>
