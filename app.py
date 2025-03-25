@@ -11,6 +11,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_bcrypt import Bcrypt
+from DB import User, db  # Import from DB.py
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'
@@ -83,17 +85,28 @@ def login():
             flash('Login unsuccessful. Please check email and password', 'danger')
     return render_template('login.html', form=form)
 
+from DB import User, db  # Import from DB.py
+from werkzeug.security import generate_password_hash
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        new_user = User(email=form.email.data, password=hashed_password)
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'])  # Hash password
+
+        # Check if user exists (using your DB.py model)
+        if User.query.filter((User.username == username) | (User.email == email)).first():
+            flash('Username/email already exists!', 'error')
+            return redirect(url_for('register'))
+
+        new_user = User(username=username, email=email, password=password)
         db.session.add(new_user)
         db.session.commit()
-        flash('Registration successful! You can now log in.', 'success')
+        flash('Registered successfully!', 'success')
         return redirect(url_for('login'))
-    return render_template('register.html', form=form)
+
+    return render_template('register.html')
 
 @app.route('/logout')
 @login_required
