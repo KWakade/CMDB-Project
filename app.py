@@ -1,18 +1,19 @@
 """
-This is a Flask application for managing a server inventory.
+Flask application for managing a server inventory - Optimized Version
 """
 import os
 import pandas as pd
 from flask import Flask, render_template, redirect, url_for, flash, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_bcrypt import Bcrypt
-from DB import User, db  # Import from DB.py
-from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
+
+# Import models and db from DB.py
+from DB import db, User, Server
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey'
@@ -20,29 +21,21 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # Initialize extensions
-db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
-migrate = Migrate(app, db)
 login_manager.login_view = 'login'
+migrate = Migrate(app, db)
+
+# Initialize db with app
+db.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-# Database Models
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-
-class Server(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    ip_address = db.Column(db.String(15), nullable=False)
-    operating_system = db.Column(db.String(50), nullable=False)
-    owner = db.Column(db.String(50), nullable=False)
 
 # Forms
 class LoginForm(FlaskForm):
@@ -51,10 +44,11 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login')
 
 class RegistrationForm(FlaskForm):
-    username = StringField('User Name', validators=[DataRequired(), Email()])
+    username = StringField('User Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    confirm_password = PasswordField('Confirm Password', 
+                                   validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
 
 class ServerForm(FlaskForm):
@@ -76,37 +70,30 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
+        if user and user.check_password(form.password.data):
             login_user(user)
             next_page = request.args.get('next')
             flash('Login successful!', 'success')
             return redirect(next_page) if next_page else redirect(url_for('index'))
-        else:
-            flash('Login unsuccessful. Please check email and password', 'danger')
+        flash('Login unsuccessful. Please check email and password', 'danger')
     return render_template('login.html', form=form)
-
-from DB import User, db  # Import from DB.py
-from werkzeug.security import generate_password_hash
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = generate_password_hash(request.form['password'])  # Hash password
-
-        # Check if user exists (using your DB.py model)
-        if User.query.filter((User.username == username) | (User.email == email)).first():
-            flash('Username/email already exists!', 'error')
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        if User.query.filter((User.username == form.username.data) | 
+                           (User.email == form.email.data)).first():
+            flash('Username/email already exists!', 'danger')
             return redirect(url_for('register'))
-
-        new_user = User(username=username, email=email, password=password)
+        
+        new_user = User(username=form.username.data, email=form.email.data)
+        new_user.set_password(form.password.data)
         db.session.add(new_user)
         db.session.commit()
-        flash('Registered successfully!', 'success')
+        flash('Registration successful! Please login.', 'success')
         return redirect(url_for('login'))
-
-    return render_template('register.html')
+    return render_template('register.html', form=form)
 
 @app.route('/logout')
 @login_required
@@ -122,31 +109,39 @@ def bulk_upload():
         if 'file' not in request.files:
             flash('No file part', 'danger')
             return redirect(request.url)
+            
         file = request.files['file']
         if file.filename == '':
             flash('No selected file', 'danger')
             return redirect(request.url)
+            
         if file and file.filename.endswith('.csv'):
-            filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(filename)
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
             
-            # Process CSV file
-            df = pd.read_csv(filename)
-            for _, row in df.iterrows():
-                new_server = Server(
-                    name=row['name'],
-                    ip_address=row['ip_address'],
-                    operating_system=row['operating_system'],
-                    owner=row['owner']
-                )
-                db.session.add(new_server)
-            db.session.commit()
-            
-            flash('File successfully uploaded and data inserted.', 'success')
+            try:
+                df = pd.read_csv(filepath)
+                for _, row in df.iterrows():
+                    server = Server(
+                        name=row['name'],
+                        ip_address=row['ip_address'],
+                        operating_system=row['operating_system'],
+                        owner=row['owner']
+                    )
+                    db.session.add(server)
+                db.session.commit()
+                flash('File uploaded and processed successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error processing file: {str(e)}', 'danger')
+            finally:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    
             return redirect(url_for('index'))
-        else:
-            flash('Invalid file format. Please upload a CSV file.', 'danger')
-            return redirect(request.url)
+            
+        flash('Invalid file format. Please upload a CSV file.', 'danger')
     return render_template('upload.html')
 
 @app.route('/add_server', methods=['GET', 'POST'])
@@ -154,15 +149,15 @@ def bulk_upload():
 def add_server():
     form = ServerForm()
     if form.validate_on_submit():
-        new_server = Server(
+        server = Server(
             name=form.name.data,
             ip_address=form.ip_address.data,
             operating_system=form.operating_system.data,
             owner=form.owner.data
         )
-        db.session.add(new_server)
+        db.session.add(server)
         db.session.commit()
-        flash('Server added successfully!','success')
+        flash('Server added successfully!', 'success')
         return redirect(url_for('index'))
     return render_template('add_server.html', form=form)
 
@@ -172,14 +167,11 @@ def edit_server(server_id):
     server = Server.query.get_or_404(server_id)
     form = ServerForm(obj=server)
     if form.validate_on_submit():
-        server.name = form.name.data
-        server.ip_address = form.ip_address.data
-        server.operating_system = form.operating_system.data
-        server.owner = form.owner.data
+        form.populate_obj(server)
         db.session.commit()
-        flash('Server details updated successfully!', 'success')
+        flash('Server updated successfully!', 'success')
         return redirect(url_for('index'))
-    return render_template('edit_server.html', form=form)
+    return render_template('edit_server.html', form=form, server=server)
 
 @app.route('/delete_server/<int:server_id>', methods=['POST'])
 @login_required
@@ -191,4 +183,6 @@ def delete_server(server_id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
